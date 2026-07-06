@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>GCS 7寸串口屏 UI 设计稿 v2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; font-family: 'Consolas', 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+
+.screen {
+    width: 1024px; height: 600px;
+    background: #0d1117;
+    border: 2px solid #333;
+    display: flex;
+    overflow: hidden;
+}
+
+/* 左侧导航 */
+.sidebar {
+    width: 100px;
+    background: #161b22;
+    border-right: 1px solid #30363d;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    gap: 4px;
+}
+.sidebar-title { color: #484f58; font-size: 10px; text-align: center; padding: 2px 0; }
+.drone-btn {
+    padding: 8px 4px;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    border: 1px solid #21262d;
+}
+.drone-btn.active { background: #0d419d; border-color: #388bfd; color: #58a6ff; }
+.drone-btn.inactive { background: #161b22; border-color: #21262d; color: #484f58; }
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
+.dot-on { background: #3fb950; }
+.dot-off { background: #f85149; }
+.drone-btn .mode-sub { font-size: 9px; color: #8b949e; margin-top: 2px; }
+.drone-btn .hz-sub { font-size: 9px; }
+.hz-ok { color: #3fb950; }
+.hz-off { color: #f85149; }
+.sidebar-bottom { flex:1; display:flex; flex-direction:column; justify-content:flex-end; }
+.sidebar-bottom .id-note { color:#484f58; font-size:8px; text-align:center; border-top:1px solid #21262d; padding-top:4px; }
+
+/* 主区域 */
+.main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 32px 1fr;
+    gap: 4px;
+    padding: 4px;
+}
+
+/* 顶栏 */
+.topbar {
+    grid-column: 1 / -1;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 12px;
+    font-size: 12px;
+}
+.tb-mode { color: #58a6ff; font-size: 16px; font-weight: bold; }
+.tb-arm { padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+.arm-no { background: #0d2818; color: #3fb950; border: 1px solid #238636; }
+.arm-yes { background: #f85149; color: #fff; }
+.tb-link { font-size: 11px; }
+.link-ok { color: #3fb950; }
+.tb-batt { margin-left: auto; font-size: 11px; }
+.batt-v { color: #f0883e; font-weight: bold; }
+.batt-p { color: #8b949e; }
+.tb-hz { color: #8b949e; font-size: 11px; }
+.tag { background:#da3633; color:#fff; font-size:8px; padding:0 3px; border-radius:2px; margin-left:2px; vertical-align:middle; }
+
+/* 左列 - 仪表 + 数据 */
+.left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.panel {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 4px;
+    padding: 6px;
+}
+.panel-title {
+    font-size: 9px;
+    color: #58a6ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 3px;
+}
+
+/* 姿态仪 - 紧凑版 */
+.att-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.att-indicator {
+    width: 120px; height: 100px;
+    border: 1.5px solid #30363d;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+}
+.att-sky { position: absolute; width: 140%; height: 55%; background: #1a3a5c; top: 0; left: -20%; transform-origin: center 100%; transform: rotate(-5deg); }
+.att-ground { position: absolute; width: 140%; height: 55%; background: #5c3a1a; bottom: 0; left: -20%; transform-origin: center 0; transform: rotate(-5deg); }
+.att-horizon { position: absolute; width: 100%; height: 1.5px; background: #fff; top: 45%; transform: rotate(-5deg); }
+.att-wings { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 60px; height: 2px; background: #f0883e; }
+.att-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; background: #f0883e; border-radius: 50%; }
+.att-values {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.att-val-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 4px;
+    background: #0d1117;
+    border-radius: 3px;
+}
+.att-val-row .lbl { color: #8b949e; font-size: 10px; }
+.att-val-row .num { color: #e6edf3; font-size: 13px; font-weight: bold; }
+.att-val-row .unit { color: #484f58; font-size: 9px; }
+
+/* 罗盘 - 紧凑 */
+.compass-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.compass-mini {
+    width: 80px; height: 80px;
+    border: 1.5px solid #30363d;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+}
+.compass-mini .n { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); color: #f85149; font-size: 9px; font-weight: bold; }
+.compass-mini .e { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 8px; }
+.compass-mini .s { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); color: #484f58; font-size: 8px; }
+.compass-mini .w { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 8px; }
+.compass-mini .needle {
+    position: absolute; top: 50%; left: 50%;
+    width: 2px; height: 30px;
+    background: linear-gradient(to top, #f85149 50%, #e6edf3 50%);
+    transform-origin: bottom center;
+    transform: translate(-50%, -100%) rotate(35deg);
+}
+.compass-mini .cdot { position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; background: #58a6ff; border-radius: 50%; transform: translate(-50%,-50%); }
+.compass-data { flex: 1; }
+.hdg-big { color: #e6edf3; font-size: 22px; font-weight: bold; }
+.hdg-label { color: #8b949e; font-size: 10px; }
+
+/* 数据面板 */
+.data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}
+.data-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 5px;
+    background: #0d1117;
+    border-radius: 3px;
+}
+.data-cell .lbl { color: #8b949e; font-size: 10px; }
+.data-cell .val { color: #e6edf3; font-size: 12px; font-weight: bold; }
+.data-cell .unit { color: #484f58; font-size: 9px; margin-left: 2px; }
+.data-cell.full { grid-column: 1 / -1; }
+
+/* 系统状态 */
+.sys-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}
+.sys-cell {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 5px;
+    background: #0d1117;
+    border-radius: 3px;
+    font-size: 10px;
+}
+.sys-cell .lbl { color: #8b949e; }
+.sys-cell .val { font-weight: bold; }
+.val-green { color: #3fb950; }
+.val-yellow { color: #d29922; }
+.val-red { color: #f85149; }
+.val-white { color: #e6edf3; }
+.val-blue { color: #58a6ff; }
+
+/* 右列 - 点云 */
+.right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.pointcloud-panel {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.pc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-bottom: 1px solid #21262d;
+}
+.pc-title { font-size: 9px; color: #58a6ff; text-transform: uppercase; letter-spacing: 1px; }
+.pc-stats { font-size: 9px; color: #8b949e; }
+.pc-view {
+    flex: 1;
+    position: relative;
+    background: #0d1117;
+    overflow: hidden;
+}
+/* 模拟点云 */
+.pc-grid {
+    position: absolute;
+    width: 100%; height: 100%;
+}
+.pc-grid-line-h, .pc-grid-line-v {
+    position: absolute;
+    background: #161b22;
+}
+.pc-grid-line-h { width: 100%; height: 1px; }
+.pc-grid-line-v { height: 100%; width: 1px; }
+.pc-dot {
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+}
+.pc-dot-wall { background: #58a6ff; }
+.pc-dot-floor { background: #238636; opacity: 0.4; }
+.pc-dot-obj { background: #f0883e; }
+.pc-drone {
+    position: absolute;
+    width: 8px; height: 8px;
+    border: 2px solid #f85149;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.pc-drone::after {
+    content: '';
+    position: absolute;
+    top: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-bottom: 5px solid #f85149;
+}
+.pc-origin {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: #8b949e;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.pc-axis-x { position: absolute; height: 1px; background: #f85149; opacity: 0.3; }
+.pc-axis-y { position: absolute; width: 1px; background: #3fb950; opacity: 0.3; }
+.pc-scale { position: absolute; bottom: 4px; right: 8px; font-size: 8px; color: #484f58; }
+.pc-legend { position: absolute; top: 4px; right: 8px; font-size: 8px; color: #484f58; line-height: 1.4; }
+.pc-legend .ldot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+
+/* ESP-NOW 链路质量条 */
+.link-bar {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+}
+.link-bar .lb-item { display: flex; align-items: center; gap: 4px; }
+.link-bar .lbl { color: #8b949e; }
+.link-bar .val { font-weight: bold; }
+
+/* 底部图例 */
+.legend-bar {
+    width: 1024px;
+    margin-top: 8px;
+    color: #484f58;
+    font-size: 10px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+.legend-bar .t { background:#da3633; color:#fff; font-size:8px; padding:0 4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="screen">
+    <!-- 左侧导航 -->
+    <div class="sidebar">
+        <div class="sidebar-title">飞机列表</div>
+        <div class="drone-btn active">
+            <div><span class="dot dot-on"></span><b>飞机 1</b></div>
+            <div class="mode-sub">LAND</div>
+            <div class="hz-sub hz-ok">20Hz</div>
+        </div>
+        <div class="drone-btn inactive">
+            <div><span class="dot dot-off"></span><b>飞机 2</b></div>
+            <div class="mode-sub">---</div>
+            <div class="hz-sub hz-off">离线</div>
+        </div>
+        <div class="sidebar-bottom">
+            <div class="id-note"><span class="tag">d1btn</span><br><span class="tag">d2btn</span></div>
+        </div>
+    </div>
+
+    <!-- 主区域 -->
+    <div class="main">
+        <!-- 顶栏 -->
+        <div class="topbar">
+            <span class="tb-mode">LAND <span class="tag">dMode</span></span>
+            <span class="tb-arm arm-no">DISARMED <span class="tag">dArm</span></span>
+            <span class="tb-link link-ok">● LINK <span class="tag">dLink</span></span>
+            <span class="tb-batt">
+                <span class="batt-v">15.3V <span class="tag">dBatV</span></span>
+                <span class="batt-p">98% <span class="tag">dBatP</span></span>
+            </span>
+            <span class="tb-hz">20Hz <span class="tag">dHz</span></span>
+        </div>
+
+        <!-- 左列 -->
+        <div class="left-col">
+            <!-- 姿态仪 -->
+            <div class="panel">
+                <div class="panel-title">Attitude 姿态</div>
+                <div class="att-row">
+                    <div class="att-indicator">
+                        <div class="att-sky"></div>
+                        <div class="att-ground"></div>
+                        <div class="att-horizon"></div>
+                        <div class="att-wings"></div>
+                        <div class="att-dot"></div>
+                    </div>
+                    <div class="att-values">
+                        <div class="att-val-row"><span class="lbl">Roll</span><span><span class="num">-5.2</span><span class="unit">° <span class="tag">dR</span></span></span></div>
+                        <div class="att-val-row"><span class="lbl">Pitch</span><span><span class="num">+2.1</span><span class="unit">° <span class="tag">dP</span></span></span></div>
+                        <div class="att-val-row"><span class="lbl">Yaw</span><span><span class="num">+035</span><span class="unit">° <span class="tag">dW</span></span></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 罗盘 -->
+            <div class="panel">
+                <div class="panel-title">Heading 航向</div>
+                <div class="compass-row">
+                    <div class="compass-mini">
+                        <span class="n">N</span><span class="e">E</span><span class="s">S</span><span class="w">W</span>
+                        <div class="needle"></div>
+                        <div class="cdot"></div>
+                    </div>
+                    <div class="compass-data">
+                        <div class="hdg-big">035° <span class="tag">dHdg</span></div>
+                        <div class="hdg-label">MAG HDG</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 位置 / 速度 -->
+            <div class="panel">
+                <div class="panel-title">Position & Velocity 位置/速度</div>
+                <div class="data-grid">
+                    <div class="data-cell"><span class="lbl">X</span><span><span class="val">+1.234</span><span class="unit">m <span class="tag">dX</span></span></span></div>
+                    <div class="data-cell"><span class="lbl">Vx</span><span><span class="val">+0.05</span><span class="unit">m/s</span></span></div>
+                    <div class="data-cell"><span class="lbl">Y</span><span><span class="val">-0.567</span><span class="unit">m <span class="tag">dY</span></span></span></div>
+                    <div class="data-cell"><span class="lbl">Vy</span><span><span class="val">-0.02</span><span class="unit">m/s</span></span></div>
+                    <div class="data-cell"><span class="lbl">Z</span><span><span class="val">+0.823</span><span class="unit">m <span class="tag">dZ</span></span></span></div>
+                    <div class="data-cell"><span class="lbl">Vz</span><span><span class="val">+0.01</span><span class="unit">m/s <span class="tag">dVz</span></span></span></div>
+                    <div class="data-cell full"><span class="lbl">Speed</span><span><span class="val">0.12</span><span class="unit">m/s <span class="tag">dSpd</span></span></span></div>
+                </div>
+            </div>
+
+            <!-- 系统状态 -->
+            <div class="panel">
+                <div class="panel-title">System 系统</div>
+                <div class="sys-grid">
+                    <div class="sys-cell"><span class="lbl">EKF Var</span><span class="val val-green">0.12 <span class="tag">dEkfV</span></span></div>
+                    <div class="sys-cell"><span class="lbl">EKF Flg</span><span class="val val-green">128 <span class="tag">dEkfF</span></span></div>
+                    <div class="sys-cell"><span class="lbl">VISO</span><span class="val val-green">20Hz <span class="tag">dViso</span></span></div>
+                    <div class="sys-cell"><span class="lbl">Dist</span><span class="val val-white">1.23m <span class="tag">dDist</span></span></div>
+                    <div class="sys-cell"><span class="lbl">Bat I</span><span class="val val-yellow">3.2A <span class="tag">dBatI</span></span></div>
+                    <div class="sys-cell"><span class="lbl">Cells</span><span class="val val-white">4S <span class="tag">dCell</span></span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右列 - 点云 + 链路 -->
+        <div class="right-col">
+            <!-- 点云地图 -->
+            <div class="pointcloud-panel">
+                <div class="pc-header">
+                    <span class="pc-title">Point Cloud Map 点云地图 <span class="tag">pcView</span></span>
+                    <span class="pc-stats">pts: 12,847 <span class="tag">pcPts</span> | 2.4KB/s <span class="tag">pcRate</span></span>
+                </div>
+                <div class="pc-view">
+                    <!-- 网格 -->
+                    <div class="pc-grid-line-h" style="top:25%"></div>
+                    <div class="pc-grid-line-h" style="top:50%"></div>
+                    <div class="pc-grid-line-h" style="top:75%"></div>
+                    <div class="pc-grid-line-v" style="left:25%"></div>
+                    <div class="pc-grid-line-v" style="left:50%"></div>
+                    <div class="pc-grid-line-v" style="left:75%"></div>
+
+                    <!-- 坐标轴 -->
+                    <div class="pc-axis-x" style="top:50%; left:48%; width:55%"></div>
+                    <div class="pc-axis-y" style="left:50%; top:10%; height:80%"></div>
+                    <div class="pc-origin" style="top:50%; left:50%"></div>
+
+                    <!-- 模拟墙壁点云 - 矩形房间轮廓 -->
+                    <!-- 上墙 -->
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:23%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:26%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:29%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:32%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:35%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:38%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:41%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:44%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:47%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:50%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:53%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:56%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:59%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:14%;left:62%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:65%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:68%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:71%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:16%;left:74%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:77%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:15%;left:80%"></div>
+                    <!-- 下墙 -->
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:23%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:26%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:29%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:32%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:84%;left:35%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:38%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:86%;left:41%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:44%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:47%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:50%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:53%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:56%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:59%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:84%;left:62%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:65%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:86%;left:68%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:71%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:74%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:77%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:85%;left:80%"></div>
+                    <!-- 左墙 -->
+                    <div class="pc-dot pc-dot-wall" style="top:18%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:22%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:26%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:30%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:34%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:38%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:42%;left:21%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:46%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:50%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:54%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:58%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:62%;left:21%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:66%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:70%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:74%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:78%;left:20%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:82%;left:20%"></div>
+                    <!-- 右墙 -->
+                    <div class="pc-dot pc-dot-wall" style="top:18%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:22%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:26%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:30%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:34%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:38%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:42%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:46%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:50%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:54%;left:81%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:58%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:62%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:66%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:70%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:74%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:78%;left:80%"></div>
+                    <div class="pc-dot pc-dot-wall" style="top:82%;left:80%"></div>
+                    <!-- 障碍物 -->
+                    <div class="pc-dot pc-dot-obj" style="top:40%;left:45%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:41%;left:46%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:42%;left:45%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:40%;left:47%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:43%;left:46%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:60%;left:35%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:61%;left:36%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:62%;left:35%"></div>
+                    <div class="pc-dot pc-dot-obj" style="top:60%;left:37%"></div>
+
+                    <!-- 飞机位置 -->
+                    <div class="pc-drone" style="top:50%;left:50%"></div>
+
+                    <!-- 图例 -->
+                    <div class="pc-legend">
+                        <div><span class="ldot" style="background:#58a6ff"></span>墙壁</div>
+                        <div><span class="ldot" style="background:#f0883e"></span>障碍物</div>
+                        <div><span class="ldot" style="background:#f85149;border-radius:0;width:6px;height:6px;border:1px solid #f85149"></span>飞机</div>
+                    </div>
+                    <div class="pc-scale">1m ├──┤</div>
+                </div>
+            </div>
+
+            <!-- ESP-NOW 链路质量 -->
+            <div class="link-bar">
+                <div class="lb-item"><span class="lbl">ESP-NOW</span></div>
+                <div class="lb-item"><span class="lbl">TX</span><span class="val val-green">12,847 <span class="tag">dTxOk</span></span></div>
+                <div class="lb-item"><span class="lbl">FAIL</span><span class="val val-green">0 <span class="tag">dTxFl</span></span></div>
+                <div class="lb-item"><span class="lbl">Loss</span><span class="val val-green">0.0% <span class="tag">dLoss</span></span></div>
+                <div class="lb-item"><span class="lbl">Up</span><span class="val val-blue">642s <span class="tag">dUp</span></span></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="legend-bar">
+    <span><span class="t">红色标签</span> = TJC 控件 ID</span>
+    <span>分辨率 1024×600 · 7寸</span>
+    <span>左侧切换飞机，右侧数据联动</span>
+    <span>点云区域 Phase 4 实现</span>
+</div>
+</body>
+</html>
