@@ -1,0 +1,14 @@
+.pio/
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+*.log
+*.pcd
+*.bag
+*.bin
+*.elf
+*.map
+*.local
+secrets.*
+config.local.*
